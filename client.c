@@ -12,7 +12,7 @@
 int main() {
     struct sockaddr_in serverAddress;
     int sock = 0;
-    char* сообщение = "Сообщение от клиента";
+    char* message = "Клиентское сообщение";
     char buffer[BUFFER_SIZE] = {0};
 
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -37,13 +37,13 @@ int main() {
     }
 
     // Отправка сообщения серверу
-    ssize_t отправлено_байт = send(sock, сообщение, strlen(сообщение), 0);
+    ssize_t отправлено_байт = send(sock, message, strlen(message), 0);
     if (отправлено_байт < 0) {
         perror("Ошибка отправки");
         close(sock);
         exit(EXIT_FAILURE);
     }
-    write(STDOUT_FILENO, "Отправлено сообщение\n", sizeof("Отправлено сообщение\n") - 1);
+    write(STDOUT_FILENO, "Отправлено message\n", sizeof("Отправлено message\n") - 1);
 
     // Получение ответа от сервера
     ssize_t прочитано_байт = recv(sock, buffer, sizeof(buffer) - 1, 0);
