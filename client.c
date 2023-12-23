@@ -13,7 +13,7 @@ int main() {
     struct sockaddr_in serverAddress;
     int sock = 0;
     char* сообщение = "Сообщение от клиента";
-    char buffer[BUFFER_SIZE] = { 0 };
+    char buffer[BUFFER_SIZE] = {0};
 
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         perror("Ошибка при создании сокета");
@@ -32,9 +32,8 @@ int main() {
     if (connect(sock, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
         perror("Ошибка подключения");
         exit(EXIT_FAILURE);
-    }
-    else {
-        printf("Соединение успешно\n");
+    } else {
+        write(STDOUT_FILENO, "Соединение успешно\n", sizeof("Соединение успешно\n") - 1);
     }
 
     // Отправка сообщения серверу
@@ -44,18 +43,18 @@ int main() {
         close(sock);
         exit(EXIT_FAILURE);
     }
-    printf("Отправлено сообщение: %s\n", сообщение);
+    write(STDOUT_FILENO, "Отправлено сообщение\n", sizeof("Отправлено сообщение\n") - 1);
 
     // Получение ответа от сервера
     ssize_t прочитано_байт = recv(sock, buffer, sizeof(buffer) - 1, 0);
     if (прочитано_байт > 0) {
         buffer[прочитано_байт] = '\0';  // Нуль-терминирование принятых данных
-        printf("Получен ответ от сервера: %s\n", buffer);
-    }
-    else if (прочитано_байт == 0) {
-        printf("Сервер закрыл соединение\n");
-    }
-    else {
+        write(STDOUT_FILENO, "Получен ответ от сервера: ", sizeof("Получен ответ от сервера: ") - 1);
+        write(STDOUT_FILENO, buffer, strlen(buffer));
+        write(STDOUT_FILENO, "\n", sizeof("\n") - 1);
+    } else if (прочитано_байт == 0) {
+        write(STDOUT_FILENO, "Сервер закрыл соединение\n", sizeof("Сервер закрыл соединение\n") - 1);
+    } else {
         perror("Ошибка приема");
     }
 
