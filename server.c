@@ -20,10 +20,13 @@ void sigHupHandler(int signal) {
     pthread_mutex_lock(&mutex);
     wasSigHup = 1;
     pthread_mutex_unlock(&mutex);
+
+    // Заменяем printf на write в обработчике сигнала
+    write(STDOUT_FILENO, "SIGHUP received.\n", sizeof("SIGHUP received.\n") - 1);
 }
 
-void* cleanupThread(void* arg) {
-    int* socket_ptr = (int*)arg;
+void *cleanupThread(void *arg) {
+    int *socket_ptr = (int *)arg;
     sleep(1); // Даем основному потоку время на обработку клиентов
     close(*socket_ptr);
     free(socket_ptr);
@@ -65,20 +68,12 @@ int main() {
     struct sigaction sa;
     sa.sa_handler = sigHupHandler;
     sa.sa_flags = SA_RESTART;
-    if (sigaction(SIGHUP, &sa, NULL) == -1) {
-        perror("Ошибка при установке обработчика сигнала");
-        close(server_socket);
-        exit(EXIT_FAILURE);
-    }
+    sigaction(SIGHUP, &sa, NULL);
 
     sigset_t blockedMask, origMask;
     sigemptyset(&blockedMask);
     sigaddset(&blockedMask, SIGHUP);
-    if (sigprocmask(SIG_BLOCK, &blockedMask, &origMask) == -1) {
-        perror("Ошибка при блокировке сигнала");
-        close(server_socket);
-        exit(EXIT_FAILURE);
-    }
+    sigprocmask(SIG_BLOCK, &blockedMask, &origMask);
 
     fd_set master_fds, read_fds;
     FD_ZERO(&master_fds);
@@ -94,36 +89,25 @@ int main() {
                 // Обработка сигнала
                 pthread_mutex_lock(&mutex);
                 if (wasSigHup) {
-                    printf("Получен сигнал SIGHUP\n");
-
+                    // Дополнительные действия при получении сигнала SIGHUP
                     wasSigHup = 0; // Сброс флага получения сигнала
                 }
                 pthread_mutex_unlock(&mutex);
-            }
-            else {
+            } else {
                 perror("Ошибка в pselect()");
-                close(server_socket);
                 exit(EXIT_FAILURE);
             }
         }
 
         // Проверка новых соединений
         if (FD_ISSET(server_socket, &read_fds)) {
-            int* new_socket_ptr = (int*)malloc(sizeof(int));
+            int *new_socket_ptr = (int *)malloc(sizeof(int));
             *new_socket_ptr = accept(server_socket, (struct sockaddr*)&client_addr, &client_len);
             if (*new_socket_ptr > 0) {
                 printf("Новое подключение от %s:%d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
                 pthread_t cleanup_thread;
-
-                if (pthread_create(&cleanup_thread, NULL, cleanupThread, (void*)new_socket_ptr) != 0) {
-                    perror("Ошибка при создании потока для обработки клиента");
-                    close(*new_socket_ptr);
-                    free(new_socket_ptr);
-                }
+                pthread_create(&cleanup_thread, NULL, cleanupThread, (void *)new_socket_ptr);
                 pthread_detach(cleanup_thread);
-            }
-            else {
-                perror("Ошибка при принятии нового соединения");
             }
         }
 
@@ -133,15 +117,13 @@ int main() {
                 char buffer[BUFFER_SIZE];
                 ssize_t bytes_received = recv(fd, buffer, sizeof(buffer), 0);
                 if (bytes_received <= 0) {
-                    if (bytes_received < 0) { 
-                        perror("Ошибка при приеме данных"); // Соединение закрыто или произошла ошибка
-                    }
+                    // Соединение закрыто или произошла ошибка
                     printf("Соединение %d закрыто\n", fd);
                     close(fd);
                     FD_CLR(fd, &master_fds);
-                }
-                else {
-                    printf("Получено %zd байт данных от соединения %d\n", bytes_received, fd); // Вывод сообщения о полученных данных
+                } else {
+                    // Вывод сообщения о количестве полученных данных
+                    printf("Получено %zd байт данных от соединения %d\n", bytes_received, fd);
                 }
             }
         }
