@@ -20,8 +20,7 @@ void sigHupHandler(int signal) {
     pthread_mutex_lock(&mutex);
     wasSigHup = 1;
     pthread_mutex_unlock(&mutex);
-
-    // Заменяем printf на write в обработчике сигнала
+    
     write(STDOUT_FILENO, "SIGHUP received.\n", sizeof("SIGHUP received.\n") - 1);
 }
 
@@ -89,7 +88,6 @@ int main() {
                 // Обработка сигнала
                 pthread_mutex_lock(&mutex);
                 if (wasSigHup) {
-                    // Дополнительные действия при получении сигнала SIGHUP
                     wasSigHup = 0; // Сброс флага получения сигнала
                 }
                 pthread_mutex_unlock(&mutex);
