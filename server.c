@@ -64,10 +64,10 @@ int main() {
     }
 
     // Установка обработчика сигнала SIGHUP
-    struct sigaction sa;
-    sa.sa_handler = sigHupHandler;
-    sa.sa_flags = SA_RESTART;
-    sigaction(SIGHUP, &sa, NULL);
+    struct sigaction signalAction;
+    signalAction.sa_handler = sigHupHandler;
+    signalAction.sa_flags = SA_RESTART;
+    sigaction(SIGHUP, &signalAction, NULL);
 
     sigset_t blockedMask, origMask;
     sigemptyset(&blockedMask);
